@@ -59,7 +59,7 @@ function createForm() {
   const firstRow = 5;
   const lastRow = sheet.getLastRow();
   const dataRows = lastRow - (firstRow - 1);
-  const data = sheet.getRange(firstRow, 1, dataRows, 11).getDisplayValues();
+  const data = sheet.getRange(firstRow, 1, dataRows, 12).getDisplayValues();
 
   type Question = {
     title: string;
@@ -72,19 +72,29 @@ function createForm() {
   };
 
   const questionsList: Question[] = data.map(question => {
+    // Concatinate A and B columns to create a title
+    const titleA = question[0];
+    const titleB = question[1];
+    const title = `${titleA} ${titleB}`;
     let answer: number | number[];
-    if (isNaN(Number(question[4]))) {
-      answer = question[4].split(',').map(Number);
+    if (isNaN(Number(question[5]))) {
+      answer = question[5].split(',').map(Number);
     } else {
-      answer = Number(question[4]);
+      answer = Number(question[5]);
     }
     return {
-      title: question[0],
-      helpText: question[1],
-      point: Number(question[2]),
-      type: question[3],
+      title: title,
+      helpText: question[2],
+      point: Number(question[3]),
+      type: question[4],
       answer: answer,
-      choice: [question[5], question[6], question[7], question[8], question[9]],
+      choice: [
+        question[6],
+        question[7],
+        question[8],
+        question[9],
+        question[10],
+      ],
       feedback: question[10],
     };
   });
@@ -162,4 +172,24 @@ function createForm() {
       .setFeedbackForIncorrect(feedback);
   });
   sheet.getRange('B3').setValue(form.getPublishedUrl());
+}
+
+function addQuestionNumToSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getActiveSheet();
+  if (!sheet) {
+    throw new Error('Sheet not found');
+  }
+  const firstRow = 5;
+  const lastRow = sheet.getLastRow();
+  const titles = sheet.getRange('B' + firstRow + ':B' + lastRow).getValues();
+
+  // A列に問題番号を設定
+  for (let i = 0; i < titles.length; i++) {
+    if (titles[i][0]) {
+      // タイトルが空でない場合にのみ処理
+      const questionNumber = `問${i + 1}`;
+      sheet.getRange(firstRow + i, 1).setValue(questionNumber);
+    }
+  }
 }
