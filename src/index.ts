@@ -193,3 +193,72 @@ function addQuestionNumToSheet() {
     }
   }
 }
+
+function createTestSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sourceSheet = ss.getActiveSheet();
+  // A列とB列から問題番号と問題文を取得
+  const questionsRange = sourceSheet.getRange(
+    'A4:B' + sourceSheet.getLastRow()
+  );
+  const questionsValues = questionsRange.getValues();
+  // G列からK列までの選択肢を取得
+  const choicesRange = sourceSheet.getRange('G4:K' + sourceSheet.getLastRow());
+  const choicesValues = choicesRange.getValues();
+
+  const questionsList = questionsValues.map((question, index) => ({
+    number: question[0], // 問題番号
+    question: question[1], // 問題文
+    choices: choicesValues[index], // 選択肢
+  }));
+
+  const middleIndex = Math.ceil(questionsList.length / 2);
+  const totalColumns = sourceSheet.getMaxColumns();
+  const offset = Math.floor(totalColumns / 2); // 中央の列を基準にオフセットを計算
+
+  // 新しいシートを作成し、B1の値をシート名として設定
+  const sheetName = sourceSheet.getRange('B1').getValue() || 'New Test Sheet';
+  const newSheet = ss.insertSheet(sheetName);
+
+  // 左側のセクションにデータを配置
+  questionsList.slice(0, middleIndex).forEach((item, index) => {
+    const row = index + 4; // B4から開始
+    newSheet.getRange(row, 1).setValue(item.number); // A列: 問題番号
+    newSheet.getRange(row, 2).setValue(item.question); // B列: 問題文
+    item.choices.forEach((choice, cIndex) => {
+      newSheet.getRange(row, 7 + cIndex).setValue(choice); // G列から選択肢
+    });
+  });
+
+  // 右側のセクションにデータを配置
+  questionsList.slice(middleIndex).forEach((item, index) => {
+    const row = index + 4; // 右側のセクションもB4から開始
+    newSheet.getRange(row, 1 + offset).setValue(item.number); // 中央の列からA列相当の位置: 問題番号
+    newSheet.getRange(row, 2 + offset).setValue(item.question); // 中央の列からB列相当の位置: 問題文
+    item.choices.forEach((choice, cIndex) => {
+      newSheet.getRange(row, 7 + offset + cIndex).setValue(choice); // 中央の列からG列相当の位置から選択肢
+    });
+  });
+}
+
+function sortingName() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sourceSheet = ss.getActiveSheet();
+  const range = sourceSheet.getRange('A1:Z' + sourceSheet.getLastRow())
+  const values = range.getValues();
+
+  // A列の文字列にB列の文字が含まれているか確認し、条件に合う場合にB列以降をA列を基準に並べ替え
+  const sortedValues = values.map(row => {
+    if (row[0].includes(row[1])) { // A列がB列の文字を含むか確認
+      const base = row.slice(1); // B列以降を取得
+      base.sort((a, b) => { // A列を基準に並べ替え
+        return a.toString().localeCompare(b.toString(), undefined, {numeric: true});
+      });
+      return [row[0], ...base]; // 並べ替えたデータを結合
+    }
+    return row; // 条件に合わない場合はそのまま
+  });
+
+  // 並べ替えたデータをスプレッドシートに書き戻す
+  range.setValues(sortedValues);
+}
